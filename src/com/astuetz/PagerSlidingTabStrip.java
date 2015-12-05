@@ -18,6 +18,7 @@ package com.astuetz;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -33,10 +34,13 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import java.util.Locale;
@@ -95,6 +99,7 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 	private int lastScrollX = 0;
 
 	private int tabBackgroundResId = R.drawable.background_tab;
+    private int tabUnreadIconResId = 0;
 
 	private Locale locale;
 
@@ -148,6 +153,7 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 		dividerPadding = a.getDimensionPixelSize(R.styleable.PagerSlidingTabStrip_pstsDividerPadding, dividerPadding);
 		tabPadding = a.getDimensionPixelSize(R.styleable.PagerSlidingTabStrip_pstsTabPaddingLeftRight, tabPadding);
 		tabBackgroundResId = a.getResourceId(R.styleable.PagerSlidingTabStrip_pstsTabBackground, tabBackgroundResId);
+        tabUnreadIconResId = a.getResourceId(R.styleable.PagerSlidingTabStrip_pstsTabUnreadIcon, tabUnreadIconResId);
 		shouldExpand = a.getBoolean(R.styleable.PagerSlidingTabStrip_pstsShouldExpand, shouldExpand);
 		scrollOffset = a.getDimensionPixelSize(R.styleable.PagerSlidingTabStrip_pstsScrollOffset, scrollOffset);
 		textAllCaps = a.getBoolean(R.styleable.PagerSlidingTabStrip_pstsTextAllCaps, textAllCaps);
@@ -185,6 +191,21 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 	public void setOnPageChangeListener(OnPageChangeListener listener) {
 		this.delegatePageListener = listener;
 	}
+
+    public LinearLayout getTabsContainer() {
+        return tabsContainer;
+    }
+
+    public TextView getTextView(int tabIndex) {
+        ViewGroup vg = (ViewGroup) tabsContainer.getChildAt(tabIndex);
+        for (int i = 0; i < vg.getChildCount(); i++) {
+            if (vg.getChildAt(i) instanceof TextView) {
+                return (TextView) vg.getChildAt(i);
+            }
+        }
+
+        return null;
+    }
 
 	public void notifyDataSetChanged() {
 
@@ -224,15 +245,58 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 
 	}
 
+    public void showUnreadIcon(int tabIndex) {
+        setUnreadIconVisibility(tabIndex, View.VISIBLE);
+    }
+
+    public void hideUnreadIcon(int tabIndex) {
+        setUnreadIconVisibility(tabIndex, View.INVISIBLE);
+    }
+
+    private void setUnreadIconVisibility(int tabIndex, int visibility) {
+        ViewGroup vg = (ViewGroup) tabsContainer.getChildAt(tabIndex);
+        for (int i = 0; i < vg.getChildCount(); i++) {
+            if (vg.getChildAt(i) instanceof ImageView) {
+                vg.getChildAt(i).setVisibility(visibility);
+            }
+        }
+    }
+
 	private void addTextTab(final int position, String title) {
 
-		TextView tab = new TextView(getContext());
-		tab.setText(title);
-		tab.setGravity(Gravity.CENTER);
-		tab.setSingleLine();
+        RelativeLayout rel = new RelativeLayout(getContext());
 
-		addTab(position, tab);
+        TextView tv = new TextView(getContext());
+        tv.setId(1);
+        tv.setText(title);
+        tv.setGravity(Gravity.CENTER);
+        tv.setSingleLine();
+
+        RelativeLayout.LayoutParams tvParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tvParams.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
+        tv.setLayoutParams(tvParams);
+        rel.addView(tv);
+
+        ImageView badge = new ImageView(getContext());
+        badge.setId(2);
+        badge.setImageResource(tabUnreadIconResId);
+        badge.setPadding(dipToPixels(2), 0, 0, dipToPixels(12));
+        badge.setVisibility(View.INVISIBLE);
+
+        RelativeLayout.LayoutParams badgeParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        badgeParams.addRule(RelativeLayout.RIGHT_OF, tv.getId());
+        badgeParams.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+        badge.setLayoutParams(badgeParams);
+        rel.addView(badge);
+
+		addTab(position, rel);
 	}
+
+    private int dipToPixels(int dip) {
+        Resources r = getResources();
+        float px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, r.getDisplayMetrics());
+        return (int) px;
+    }
 
 	private void addIconTab(final int position, int resId) {
 
@@ -264,9 +328,9 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 
 			v.setBackgroundResource(tabBackgroundResId);
 
-			if (v instanceof TextView) {
+			if (v instanceof RelativeLayout) {
 
-				TextView tab = (TextView) v;
+				TextView tab = (TextView) ((RelativeLayout) v).getChildAt(0);
 				tab.setTextSize(TypedValue.COMPLEX_UNIT_PX, tabTextSize);
 				tab.setTypeface(tabTypeface, tabTypefaceStyle);
 				tab.setTextColor(tabTextColor);
