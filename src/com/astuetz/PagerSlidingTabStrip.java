@@ -50,7 +50,8 @@ import java.util.Locale;
 public class PagerSlidingTabStrip extends HorizontalScrollView {
 
     public interface IconTabProvider {
-        public int getPageIconResId(int position);
+        int getPageIconResId(int position);
+        int getDeactivatePageIconResId(int position);
     }
 
     // @formatter:off
@@ -224,7 +225,11 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
         for (int i = 0; i < tabCount; i++) {
 
             if (pager.getAdapter() instanceof IconTabProvider) {
-                addIconTab(i, ((IconTabProvider) pager.getAdapter()).getPageIconResId(i));
+                if (i == 0) {
+                    addIconTab(i, ((IconTabProvider) pager.getAdapter()).getPageIconResId(i));
+                } else {
+                    addIconTab(i, ((IconTabProvider) pager.getAdapter()).getDeactivatePageIconResId(i));
+                }
             } else {
                 addTextTab(i, pager.getAdapter().getPageTitle(i).toString());
             }
@@ -297,6 +302,7 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
         badge.setLayoutParams(badgeParams);
         rel.addView(badge);
 
+        rel.setPadding(tabPadding, 0, tabPadding, 0);
         addTab(position, rel);
     }
 
@@ -310,6 +316,7 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 
         ImageButton tab = new ImageButton(getContext());
         tab.setImageResource(resId);
+        tab.setPadding(tabPadding, dipToPixels(8), tabPadding, dipToPixels(8));
 
         addTab(position, tab);
 
@@ -324,7 +331,6 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
             }
         });
 
-        tab.setPadding(tabPadding, 0, tabPadding, 0);
         tabsContainer.addView(tab, position, shouldExpand ? expandedTabLayoutParams : defaultTabLayoutParams);
     }
 
@@ -334,7 +340,7 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 
             View v = tabsContainer.getChildAt(i);
 
-            v.setBackgroundResource(tabBackgroundResId);
+            v.setBackgroundResource(!tabSwitch ? tabBackgroundResId : transparentColorId);
 
             if (v instanceof RelativeLayout) {
 
@@ -352,6 +358,14 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
                         tab.setText(tab.getText().toString().toUpperCase(locale));
                     }
                 }
+            } else if (v instanceof ImageButton) {
+                ImageButton tab = (ImageButton) v;
+                tab.setSelected(tabSwitch && i == 0);
+                if (i == 0) {
+                    tab.setImageResource(((IconTabProvider) pager.getAdapter()).getPageIconResId(i));
+                } else {
+                    tab.setImageResource(((IconTabProvider) pager.getAdapter()).getDeactivatePageIconResId(i));
+                }
             }
         }
 
@@ -368,6 +382,12 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
                 tab.setTextColor(position == i ? tabTextColor : tabDeactivateTextColor);
             } else {
                 v.setSelected(position == i);
+                ImageButton imageButton = (ImageButton) v;
+                if (position == i) {
+                    imageButton.setImageResource(((IconTabProvider) pager.getAdapter()).getPageIconResId(i));
+                } else {
+                    imageButton.setImageResource(((IconTabProvider) pager.getAdapter()).getDeactivatePageIconResId(i));
+                }
             }
         }
     }
