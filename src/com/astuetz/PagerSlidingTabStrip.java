@@ -302,7 +302,6 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
         badge.setLayoutParams(badgeParams);
         rel.addView(badge);
 
-        rel.setPadding(tabPadding, 0, tabPadding, 0);
         addTab(position, rel);
     }
 
@@ -316,7 +315,6 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
 
         ImageButton tab = new ImageButton(getContext());
         tab.setImageResource(resId);
-        tab.setPadding(tabPadding, dipToPixels(8), tabPadding, dipToPixels(8));
 
         addTab(position, tab);
 
@@ -331,6 +329,7 @@ public class PagerSlidingTabStrip extends HorizontalScrollView {
             }
         });
 
+        tab.setPadding(tabPadding, 0, tabPadding, 0);
         tabsContainer.addView(tab, position, shouldExpand ? expandedTabLayoutParams : defaultTabLayoutParams);
     }
 
